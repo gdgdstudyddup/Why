@@ -6,6 +6,11 @@ class vec3
         this.y=y;
         this.z=z;
     }
+    normalize()
+    {
+        var value=Math.sqrt(this.x*this.x+this.y*this.y+this.z+this.z);
+        return new vec3(this.x/value,this.y/value,this.z/value);
+    }
 }
 class vec4
 {
@@ -20,6 +25,11 @@ class vec4
         this.b=z;
         this.a=w;
     }
+    normalize()
+    {
+        var value=Math.sqrt(this.x*this.x+this.y*this.y+this.z+this.z+this.w*this.w);
+        return new vec4(this.x/value,this.y/value,this.z/value,this.w/value);
+    }
 }
 class vec2
 {
@@ -28,6 +38,11 @@ class vec2
         this.x=x;
         this.y=y;
         
+    }
+    normalize()
+    {
+        var value=Math.sqrt(this.x*this.x+this.y*this.y);
+        return new vec2(this.x/value,this.y/value);
     }
 }
 class Transform
