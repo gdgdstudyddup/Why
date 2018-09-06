@@ -213,22 +213,28 @@ class Tracball {
     }
 }
 class WHYCamera {
-    constructor() {
+     constructor() {
 
-        this.viewMatrix = new Matrix4();
-
-        this.position = new vec3(0, 0, 100);
+        this.position = new vec3(0, 0, 0);
         this.up = new vec3(0, 1, 0);
         this.lookat = new vec3(0, 0, 0);
-
+        this.viewMatrix = new Matrix4();
+        this.viewMatrix.setLookAt(this.position.x, this.position.y, this.position.z,
+            this.lookat.x, this.lookat.y, this.lookat.z,
+            this.up.x, this.up.y, this.up.z);
     }
     instance() {
         return this;
     }
 
-    setLookAt(pos, targetPos, up) {
+    setLookAt(pos, targetPos, Up) {
         // console.log("200",pos,up);
-        this.viewMatrix.setLookAt(pos.x, pos.y, pos.z, targetPos.x, targetPos.y, targetPos.z, up.x, up.y, up.z);
+        if (pos && targetPos && Up) {
+            this.viewMatrix.setLookAt(pos.x, pos.y, pos.z, targetPos.x, targetPos.y, targetPos.z, Up.x, Up.y, Up.z);
+            this.position = pos;
+            this.up = Up;
+            this.lookat = targetPos;
+        }
 
 
     }
