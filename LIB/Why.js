@@ -127,19 +127,7 @@ class vec3 {
 
         return new vec3(this.x / value, this.y / value, this.z / value);
     }
-    mutipliedQuat(quat) {//do remember to normalize before mut 
-        if (!quat) return null;
-        var p = new Quaternion(
-            this.x,
-            this.y,
-            this.z,
-            0.0
-        )
-        var q2 = quat.conjugate();
-        p = p.mutipliedQuat(q2);
-        p = quat.mutipliedQuat(p);
-        return new vec3(p.x, p.y, p.z);
-    }
+
     cross(a, b) {
         return new vec3(a.y * b.z - b.y * a.z, b.x * a.z - a.x * b.z, a.x * b.y - b.x * a.y);
     }
