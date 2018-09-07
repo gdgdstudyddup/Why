@@ -29,7 +29,7 @@ class Quaternion {
         dest = new Quaternion(-this.x, -this.y, -this.z, this.w);
         return dest;
     }
-    mutipliedQuat(quat, dest) {
+    mutipliedQuat(quat, dest) {//this=left quat=right dest=answer
         dest = new Quaternion(this.w * quat.x + this.x * quat.w + this.y * quat.z - this.z * quat.y,
             this.w * quat.y + this.y * quat.w + this.z * quat.x - this.x * quat.z,
             this.w * quat.z + this.z * quat.w + this.x * quat.y - this.y * quat.x,
@@ -45,7 +45,7 @@ class Quaternion {
         if (sq != 1) { sq = 1 / sq; a *= sq; b *= sq; c *= sq; }
         var s = Math.sin(angle * 0.5);
         dest = new Quaternion(a * s, b * s, c * s, Math.cos(angle * 0.5));
-        console.log("ddd", dest);
+       // console.log("ddd", dest);
         return dest;
     }
     getAxisAng(dest)//1-3 axis 4 angles
@@ -97,10 +97,10 @@ class Quaternion {
             at = sin((1.0 - t) * a) / sina;
             bt = sin(t * a) / sina;
         }
-        dest.x=b.x*at+e.x*bt;
-        dest.y=b.y*at+e.y*bt;
-        dest.z=b.z*at+e.z*bt;
-        dest.w=b.w*at+e.w*bt;
+        dest.x = b.x * at + e.x * bt;
+        dest.y = b.y * at + e.y * bt;
+        dest.z = b.z * at + e.z * bt;
+        dest.w = b.w * at + e.w * bt;
 
         return dest;
     }
@@ -127,9 +127,10 @@ class vec3 {
 
         return new vec3(this.x / value, this.y / value, this.z / value);
     }
-
+    
     cross(a, b) {
-        return new vec3(a.y * b.z - b.y * a.z, b.x * a.z - a.x * b.z, a.x * b.y - b.x * a.y);
+        var temp=new vec3(a.y * b.z - b.y * a.z, b.x * a.z - a.x * b.z, a.x * b.y - b.x * a.y)
+        return temp.normalize();
     }
     dot(a, b)//get cos
     {
@@ -195,13 +196,76 @@ class Transform {
         this.up.z = up.z;
     }
 }
-class Tracball {
-    constructor(camera) {
+class Trackball {
+    constructor(scene,camera) {
+        this.preP = new vec3(0, 0, 0);
 
+        this.go = false;
+        this.delta = 0;
+        this.cvs=scene.why;
+        this.cvs.addEventListener('mousedown', (e) => {
+            this.go = true;
+            var x1 = 2 * e.x / window.innerWidth - 1;
+            var y1 = 1 - 2 * e.y / window.innerHeight;
+            this.preP = new vec3(x1, y1, 1.0);
+            this.getMapCoordinates(this.preP,this.preP);
+            
+        }, false)
+        this.cvs.addEventListener('mousemove', (e) => {
+            if(!this.go)return;
+            var x1 = 2 * e.x / this.cvs.width - 1;
+            var y1 = 1 - 2 * e.y / this.cvs.height;
+            var lastP = new vec3(x1, y1, 1.0);
+            this.getMapCoordinates(lastP,lastP);
+
+            var axis=preP.cross(this.preP,lastP);
+            console.log(axis);
+            this.delta =0.01*lastP.dot(this.preP,lastP);
+            var q=new Quaternion();
+            var quat=q.rotateByAxisAngles(axis,Math.sin(this.delta),quat);
+            var pos=q.mutVec3(camera.position,quat,pos);
+            var up=q.mutVec3(camera.up,quat,up);
+            camera.setLookAt(pos,camera.lookat, up);
+       
+            //preP = lastP;
+
+
+
+        }, false)
+        this.cvs.addEventListener('mouseup', (e) => {
+            this.go = false;
+        }, false)
+    }
+    getMapCoordinates(v,dest)
+    {
+        if(!v)return dest;
+        var distance=1-v.x*v.x-v.y*v.y;
+        if(distance<1)
+        {
+            dest.x=v.x;
+            dest.y=v.y;
+            dest.z=Math.sqrt(1-distance);
+        }
+        else
+        {
+            
+            var temp=1/Math.sqrt(distance);
+            dest.x=v.x*temp;
+            dest.y=v.y*temp;
+            dest.z=0;
+        }
+
+        return dest;
+    }
+    over()
+    {
+        this.cvs.removEventListener('mousedown');
+        this.cvs.removEventListener('mousemove');
+        this.cvs.removEventListener('mouseup');
     }
 }
 class WHYCamera {
-     constructor() {
+    constructor() {
 
         this.position = new vec3(0, 0, 0);
         this.up = new vec3(0, 1, 0);
@@ -228,13 +292,18 @@ class WHYCamera {
     }
 }
 
-class WHY {
+class WHYScene {
 
     constructor() {
 
         //test value
-        this.preP = new vec3(0, 0, 0);
-        //
+        
+        // 
+        this.init();
+        console.log(this);
+    }
+
+    init() {
         this.why = document.createElement("CANVAS");
         this.why.width = window.innerWidth;
         this.why.height = window.innerHeight;
@@ -244,28 +313,17 @@ class WHY {
             alert("browser do not support webGL");
             return;
         }
-        this.gl.clearColor(0.8, 0.8, 0.8, 1.0);
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-        this.program = createProgram(this.gl, document.getElementById("vertex-shader").innerHTML, document.getElementById("fragment-shader").innerHTML);
-        if (!this.program) {
-            console.log("err  shader");
-            return;
-        }
+        //check webgl support
         this.camera = new WHYCamera();
         this.projectionMatrix = new Matrix4();
-        this.init();
-
-
-        console.log(this);
-    }
-
-    init() {
-
-
+        this.gl.clearColor(0.8, 0.8, 0.8, 1.0);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+        this.gl.enable(this.gl.DEPTH_TEST);
+        //gl.clear(gl.DEPTH_BUFFER_BIT);
         this.setCamera();
-        this.setPerspective(30, 600, 800, 1, 1000);
+        this.setPerspective(30, window.innerWidth, window.innerHeight, 1, 1000);
     }
-    setCamera(Pos = new vec3(10, 10, 50), targetPos = new vec3(0, 0, 0), Up = new vec3(0, 1, 0)) {
+    setCamera(Pos = new vec3(0, 0, 50), targetPos = new vec3(0, 0, 0), Up = new vec3(0, 1, 0)) {
         this.camera.setLookAt(Pos, targetPos, Up);
     }
     setPerspective(fov, width, height, near, far) {
@@ -274,8 +332,21 @@ class WHY {
     Draw() {//mode, count, elementType, offset
 
     }
-
+    useTrackballCamera()
+    {
+        this.cameraController=new Trackball(scene,scene.camera);
+    }
+    trackballCameraOver()
+    {
+        this.cameraController.over();
+        this.cameraController=null;
+    }
     drawSimpleCube() {
+        var program = createProgram(this.gl, document.getElementById("vertex-shader").innerHTML, document.getElementById("fragment-shader").innerHTML);
+        if (!program) {
+            console.log("err  shader");
+            return;
+        }
         var vertices = new Float32Array([1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0,    // v0-v1-v2-v3 front
             1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0,    // v0-v3-v4-v5 right
             1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0,    // v0-v5-v6-v1 up
@@ -295,18 +366,18 @@ class WHY {
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, ibo);
         this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, indices, this.gl.STATIC_DRAW);
 
-        this.program.pos = this.gl.getAttribLocation(this.program, "a_pos");
-        this.program.p = this.gl.getUniformLocation(this.program, "pro");
-        this.program.m = this.gl.getUniformLocation(this.program, "model");
-        this.program.v = this.gl.getUniformLocation(this.program, "view");
+        program.pos = this.gl.getAttribLocation(program, "a_pos");
+        program.p = this.gl.getUniformLocation(program, "pro");
+        program.m = this.gl.getUniformLocation(program, "model");
+        program.v = this.gl.getUniformLocation(program, "view");
 
-        this.gl.vertexAttribPointer(this.program.pos, 3, this.gl.FLOAT, false, 0, 0);//3个float
-        this.gl.enableVertexAttribArray(this.program.pos);
-        this.gl.useProgram(this.program);
+        this.gl.vertexAttribPointer(program.pos, 3, this.gl.FLOAT, false, 0, 0);//3个float
+        this.gl.enableVertexAttribArray(program.pos);
+        this.gl.useProgram(program);
         var modelMatrix = new Matrix4();
-        this.gl.uniformMatrix4fv(this.program.m, false, modelMatrix.elements);
-        this.gl.uniformMatrix4fv(this.program.v, false, this.camera.viewMatrix.elements);
-        this.gl.uniformMatrix4fv(this.program.p, false, this.projectionMatrix.elements);
+        this.gl.uniformMatrix4fv(program.m, false, modelMatrix.elements);
+        this.gl.uniformMatrix4fv(program.v, false, this.camera.viewMatrix.elements);
+        this.gl.uniformMatrix4fv(program.p, false, this.projectionMatrix.elements);
 
         this.gl.drawElements(this.gl.TRIANGLES, indices.length, this.gl.UNSIGNED_BYTE, 0);
 
