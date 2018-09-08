@@ -50,7 +50,7 @@ class Quaternion {
     }
     getAxisAng(dest)//1-3 axis 4 angles
     {
-        var scale = Math.sqrt(this.x * this.x + this.y + this.y + this.z + this.z);
+        var scale = Math.sqrt(this.x * this.x + this.y *this.y + this.z * this.z);
 
 
         dest = new vec4(this.x / scale, this.y / scale, this.z / scale, Math.acos(this.w) * 2.0);
@@ -123,18 +123,24 @@ class vec3 {
         return new vec3(this.x, this.y, this.z);
     }
     normalize() {
-        var value = Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z).toFixed(30);
+        var value = Math.sqrt(this.x * this.x+ this.y * this.y + this.z * this.z);
 
         return new vec3(this.x / value, this.y / value, this.z / value);
     }
     
     cross(a, b) {
         var temp=new vec3(a.y * b.z - b.y * a.z, b.x * a.z - a.x * b.z, a.x * b.y - b.x * a.y)
-        return temp.normalize();
+        return temp;
     }
     dot(a, b)//get cos
     {
-        return (a.x * b.x + a.y + b.y + a.z * b.z) / ((Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z)) * (Math.sqrt(b.x * b.x + b.y * b.y + b.z * b.z)));
+        a=a.normalize();
+        b=b.normalize();
+        //console.log(a.x * b.x + a.y * b.y + a.z * b.z)
+        var temp=a.x * b.x + a.y * b.y + a.z * b.z;
+        if(temp>1)temp=1;
+        if(temp<-1)temp=-1;
+        return Math.acos(temp);
     }
 }
 class vec4 {
@@ -152,7 +158,7 @@ class vec4 {
         return new vec3(vec.x, vec.y, vec.z, vec.w);
     }
     normalize() {
-        var value = Math.sqrt(this.x * this.x + this.y * this.y + this.z + this.z + this.w * this.w);
+        var value = Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w);
         return new vec4(this.x / value, this.y / value, this.z / value, this.w / value);
     }
 }
@@ -196,38 +202,54 @@ class Transform {
         this.up.z = up.z;
     }
 }
+
 class Trackball {
     constructor(scene,camera) {
         this.preP = new vec3(0, 0, 0);
+        this.lastP = new vec3(0, 0, 0);
 
         this.go = false;
         this.delta = 0;
         this.cvs=scene.why;
+        var pos1=camera.position.getVec3();
+        var up1=camera.up.getVec3();
         this.cvs.addEventListener('mousedown', (e) => {
             this.go = true;
-            var x1 = 2 * e.x / window.innerWidth - 1;
-            var y1 = 1 - 2 * e.y / window.innerHeight;
+            var x1 = 2 * e.clientX / window.innerWidth - 1;
+            var y1 = 1 - 2 * e.clientY / window.innerHeight;
             this.preP = new vec3(x1, y1, 1.0);
-            this.getMapCoordinates(this.preP,this.preP);
+            
             
         }, false)
         this.cvs.addEventListener('mousemove', (e) => {
             if(!this.go)return;
-            var x1 = 2 * e.x / this.cvs.width - 1;
-            var y1 = 1 - 2 * e.y / this.cvs.height;
-            var lastP = new vec3(x1, y1, 1.0);
-            this.getMapCoordinates(lastP,lastP);
-
-            var axis=preP.cross(this.preP,lastP);
-            console.log(axis);
-            this.delta =0.01*lastP.dot(this.preP,lastP);
+            
+            var x1 = 2 * e.clientX / this.cvs.width - 1;
+            var y1 = 1 - 2 * e.clientY / this.cvs.height;
+            this.lastP = new vec3(x1, y1, 1.0);
+            var p1=new vec3(1, 1, 1.0),p2=new vec3(1, 1, 1.0);
+            
+             p2=this.getMapCoordinates(this.lastP,p2);
+             p1=this.getMapCoordinates(this.preP,p1);
+            var axis=preP.cross(p1,p2);
+            axis=axis.normalize();
+           
+            //console.log(axis.x,axis.y,axis.z);
+           
+            this.delta =2*lastP.dot(this.preP,this.lastP);
+           
+         
             var q=new Quaternion();
-            var quat=q.rotateByAxisAngles(axis,Math.sin(this.delta),quat);
+            var quat=q.rotateByAxisAngles(axis,(-this.delta),quat);
             var pos=q.mutVec3(camera.position,quat,pos);
             var up=q.mutVec3(camera.up,quat,up);
-            camera.setLookAt(pos,camera.lookat, up);
-       
-            //preP = lastP;
+            // if(p1.dot(camera.up,new vec3(0,1,0))<0.005)
+            // {
+            //     return;
+            // }
+            camera.setLookAt(pos,camera.lookat,up);
+            //console.log(camera.position.x,camera.position.y,camera.position.z);
+            this.preP = this.lastP;
 
 
 
@@ -240,11 +262,12 @@ class Trackball {
     {
         if(!v)return dest;
         var distance=1-v.x*v.x-v.y*v.y;
-        if(distance<1)
+        if(distance<=1)
         {
             dest.x=v.x;
             dest.y=v.y;
-            dest.z=Math.sqrt(1-distance);
+           // dest.z=Math.sqrt(1-distance);
+           dest.z=Math.sqrt(distance);
         }
         else
         {
@@ -254,7 +277,7 @@ class Trackball {
             dest.y=v.y*temp;
             dest.z=0;
         }
-
+        
         return dest;
     }
     over()
@@ -321,9 +344,9 @@ class WHYScene {
         this.gl.enable(this.gl.DEPTH_TEST);
         //gl.clear(gl.DEPTH_BUFFER_BIT);
         this.setCamera();
-        this.setPerspective(30, window.innerWidth, window.innerHeight, 1, 1000);
+        this.setPerspective(30, this.why.width, this.why.height, 1, 1000);
     }
-    setCamera(Pos = new vec3(0, 0, 50), targetPos = new vec3(0, 0, 0), Up = new vec3(0, 1, 0)) {
+    setCamera(Pos = new vec3(0, 0, 20), targetPos = new vec3(0, 0, 0), Up = new vec3(0, 1, 0)) {
         this.camera.setLookAt(Pos, targetPos, Up);
     }
     setPerspective(fov, width, height, near, far) {
@@ -375,6 +398,48 @@ class WHYScene {
         this.gl.enableVertexAttribArray(program.pos);
         this.gl.useProgram(program);
         var modelMatrix = new Matrix4();
+        this.gl.uniformMatrix4fv(program.m, false, modelMatrix.elements);
+        this.gl.uniformMatrix4fv(program.v, false, this.camera.viewMatrix.elements);
+        this.gl.uniformMatrix4fv(program.p, false, this.projectionMatrix.elements);
+
+        this.gl.drawElements(this.gl.TRIANGLES, indices.length, this.gl.UNSIGNED_BYTE, 0);
+
+    }
+    drawSimpleCube2() {
+        var program = createProgram(this.gl, document.getElementById("vertex-shader").innerHTML, document.getElementById("fragment-shader").innerHTML);
+        if (!program) {
+            console.log("err  shader");
+            return;
+        }
+        var vertices = new Float32Array([1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0,    // v0-v1-v2-v3 front
+            1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0,    // v0-v3-v4-v5 right
+            1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0,    // v0-v5-v6-v1 up
+            -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0,    // v1-v6-v7-v2 left
+            -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0,    // v7-v4-v3-v2 down
+            1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0]);
+        var indices = new Uint8Array([0, 1, 2, 0, 2, 3,    // front
+            4, 5, 6, 4, 6, 7,    // right
+            8, 9, 10, 8, 10, 11,    // up
+            12, 13, 14, 12, 14, 15,    // left
+            16, 17, 18, 16, 18, 19,    // down
+            20, 21, 22, 20, 22, 23]);
+        var vbo = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, vertices, this.gl.STATIC_DRAW);
+        var ibo = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, ibo);
+        this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, indices, this.gl.STATIC_DRAW);
+
+        program.pos = this.gl.getAttribLocation(program, "a_pos");
+        program.p = this.gl.getUniformLocation(program, "pro");
+        program.m = this.gl.getUniformLocation(program, "model");
+        program.v = this.gl.getUniformLocation(program, "view");
+
+        this.gl.vertexAttribPointer(program.pos, 3, this.gl.FLOAT, false, 0, 0);//3个float
+        this.gl.enableVertexAttribArray(program.pos);
+        this.gl.useProgram(program);
+        var modelMatrix = new Matrix4();
+        modelMatrix.translate(3,0,0);
         this.gl.uniformMatrix4fv(program.m, false, modelMatrix.elements);
         this.gl.uniformMatrix4fv(program.v, false, this.camera.viewMatrix.elements);
         this.gl.uniformMatrix4fv(program.p, false, this.projectionMatrix.elements);
