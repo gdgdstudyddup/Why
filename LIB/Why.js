@@ -13,7 +13,7 @@ class Quaternion {
         this.w = 1;
     }
     normalize() {
-        var temp = this.x * this.x + this.y + this.y + this.z + this.z + this.w + this.w;
+        var temp = this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w;
         if (temp != 0 && Math.abs(temp) > 0.00001) {
             temp = 1 / Math.sqrt(temp);
 
@@ -76,7 +76,7 @@ class Quaternion {
         // r=a(t)p+b(t)q
         //a(t)=sin(1-t)a/sina
         //b(t)=sin(t*a)/sina
-        var cosa = b.x * e.x + b.y + e.y + b.z + e.z + b.w + e.w;
+        var cosa = b.x * e.x + b.y * e.y + b.z * e.z + b.w * e.w;
         if (cosa < 0)//if dot < 0  slerp will go LONG way!!
         {
             e.x = -e.x;
