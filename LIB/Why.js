@@ -45,12 +45,12 @@ class Quaternion {
         if (sq != 1) { sq = 1 / sq; a *= sq; b *= sq; c *= sq; }
         var s = Math.sin(angle * 0.5);
         dest = new Quaternion(a * s, b * s, c * s, Math.cos(angle * 0.5));
-       // console.log("ddd", dest);
+        // console.log("ddd", dest);
         return dest;
     }
     getAxisAng(dest)//1-3 axis 4 angles
     {
-        var scale = Math.sqrt(this.x * this.x + this.y *this.y + this.z * this.z);
+        var scale = Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
 
 
         dest = new vec4(this.x / scale, this.y / scale, this.z / scale, Math.acos(this.w) * 2.0);
@@ -123,23 +123,23 @@ class vec3 {
         return new vec3(this.x, this.y, this.z);
     }
     normalize() {
-        var value = Math.sqrt(this.x * this.x+ this.y * this.y + this.z * this.z);
+        var value = Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
 
         return new vec3(this.x / value, this.y / value, this.z / value);
     }
-    
+
     cross(a, b) {
-        var temp=new vec3(a.y * b.z - b.y * a.z, b.x * a.z - a.x * b.z, a.x * b.y - b.x * a.y)
+        var temp = new vec3(a.y * b.z - b.y * a.z, b.x * a.z - a.x * b.z, a.x * b.y - b.x * a.y)
         return temp;
     }
     dot(a, b)//get cos
     {
-        a=a.normalize();
-        b=b.normalize();
+        a = a.normalize();
+        b = b.normalize();
         //console.log(a.x * b.x + a.y * b.y + a.z * b.z)
-        var temp=a.x * b.x + a.y * b.y + a.z * b.z;
-        if(temp>1)temp=1;
-        if(temp<-1)temp=-1;
+        var temp = a.x * b.x + a.y * b.y + a.z * b.z;
+        if (temp > 1) temp = 1;
+        if (temp < -1) temp = -1;
         return Math.acos(temp);
     }
 }
@@ -204,50 +204,69 @@ class Transform {
 }
 
 class Trackball {
-    constructor(scene,camera) {
+    constructor(scene, camera) {
         this.preP = new vec3(0, 0, 0);
         this.lastP = new vec3(0, 0, 0);
 
         this.go = false;
         this.delta = 0;
-        this.cvs=scene.why;
-        var pos1=camera.position.getVec3();
-        var up1=camera.up.getVec3();
+        this.cvs = scene.why;
+        this.saveUp = null;
+        this.savePosition = null;
+        //this.d=0;
         this.cvs.addEventListener('mousedown', (e) => {
             this.go = true;
             var x1 = 2 * e.clientX / window.innerWidth - 1;
             var y1 = 1 - 2 * e.clientY / window.innerHeight;
             this.preP = new vec3(x1, y1, 1.0);
-            
-            
+
+
         }, false)
         this.cvs.addEventListener('mousemove', (e) => {
-            if(!this.go)return;
-            
+            if (!this.go) return;
+
             var x1 = 2 * e.clientX / this.cvs.width - 1;
             var y1 = 1 - 2 * e.clientY / this.cvs.height;
             this.lastP = new vec3(x1, y1, 1.0);
-            var p1=new vec3(1, 1, 1.0),p2=new vec3(1, 1, 1.0);
-            
-             p2=this.getMapCoordinates(this.lastP,p2);
-             p1=this.getMapCoordinates(this.preP,p1);
-            var axis=preP.cross(p1,p2);
-            axis=axis.normalize();
-           
+            var p1 = new vec3(1, 1, 1.0), p2 = new vec3(1, 1, 1.0);
+
+            p2 = this.getMapCoordinates(this.lastP, p2);
+            p1 = this.getMapCoordinates(this.preP, p1);
+            var axis = preP.cross(p1, p2);
+            axis = axis.normalize();
+
             //console.log(axis.x,axis.y,axis.z);
-           
-            this.delta =2*lastP.dot(this.preP,this.lastP);
-           
-         
-            var q=new Quaternion();
-            var quat=q.rotateByAxisAngles(axis,(-this.delta),quat);
-            var pos=q.mutVec3(camera.position,quat,pos);
-            var up=q.mutVec3(camera.up,quat,up);
-            // if(p1.dot(camera.up,new vec3(0,1,0))<0.005)
-            // {
-            //     return;
-            // }
-            camera.setLookAt(pos,camera.lookat,up);
+
+            this.delta = 2 * lastP.dot(this.preP, this.lastP);
+
+
+            var q = new Quaternion();
+            var quat = q.rotateByAxisAngles(axis, (-this.delta), quat);
+            var pos = q.mutVec3(camera.position, quat, pos);
+            var up = q.mutVec3(camera.up, quat, up);
+            var judgeWithTargetUp = p1.dot(camera.up, new vec3(0, 1, 0));
+            // if(this.targetUp)
+            // console.log(p1.dot(camera.up, new vec3(0, 1, 0)),p1.dot(this.targetUp, new vec3(0, 1, 0)))
+            //console.log(this.targetUp,this.savePosition);
+            if (judgeWithTargetUp > 1.57079) {//PI/2
+                // up.x-=0.01;
+                // up.y-=0.01;
+                // up.z-=0.01;
+                // this.preP = this.lastP;
+                // return;
+                camera.setLookAt(this.savePosition, camera.lookat, this.targetUp);
+                this.preP = this.lastP;
+
+                return;
+
+            }
+            //this.d=judgeWithTargetUp;
+            if (judgeWithTargetUp <=1.57079) {
+               
+            this.savePosition = camera.position;
+            this.targetUp = camera.up;
+        }
+            camera.setLookAt(pos, camera.lookat, up);
             //console.log(camera.position.x,camera.position.y,camera.position.z);
             this.preP = this.lastP;
 
@@ -258,30 +277,26 @@ class Trackball {
             this.go = false;
         }, false)
     }
-    getMapCoordinates(v,dest)
-    {
-        if(!v)return dest;
-        var distance=1-v.x*v.x-v.y*v.y;
-        if(distance<=1)
-        {
-            dest.x=v.x;
-            dest.y=v.y;
-           // dest.z=Math.sqrt(1-distance);
-           dest.z=Math.sqrt(distance);
+    getMapCoordinates(v, dest) {
+        if (!v) return dest;
+        var distance = 1 - v.x * v.x - v.y * v.y;
+        if (distance <= 1) {
+            dest.x = v.x;
+            dest.y = v.y;
+            // dest.z=Math.sqrt(1-distance);
+            dest.z = Math.sqrt(distance);
         }
-        else
-        {
-            
-            var temp=1/Math.sqrt(distance);
-            dest.x=v.x*temp;
-            dest.y=v.y*temp;
-            dest.z=0;
+        else {
+
+            var temp = 1 / Math.sqrt(distance);
+            dest.x = v.x * temp;
+            dest.y = v.y * temp;
+            dest.z = 0;
         }
-        
+
         return dest;
     }
-    over()
-    {
+    over() {
         this.cvs.removEventListener('mousedown');
         this.cvs.removEventListener('mousemove');
         this.cvs.removEventListener('mouseup');
@@ -320,7 +335,7 @@ class WHYScene {
     constructor() {
 
         //test value
-        
+
         // 
         this.init();
         console.log(this);
@@ -345,6 +360,11 @@ class WHYScene {
         //gl.clear(gl.DEPTH_BUFFER_BIT);
         this.setCamera();
         this.setPerspective(30, this.why.width, this.why.height, 1, 1000);
+        window.onresize=function(){
+            if(!this.why)return;
+            this.why.width=window.innerWidth;
+            this.why.height=window.innerHeight;
+            }
     }
     setCamera(Pos = new vec3(0, 0, 20), targetPos = new vec3(0, 0, 0), Up = new vec3(0, 1, 0)) {
         this.camera.setLookAt(Pos, targetPos, Up);
@@ -355,14 +375,12 @@ class WHYScene {
     Draw() {//mode, count, elementType, offset
 
     }
-    useTrackballCamera()
-    {
-        this.cameraController=new Trackball(scene,scene.camera);
+    useTrackballCamera() {
+        this.cameraController = new Trackball(scene, scene.camera);
     }
-    trackballCameraOver()
-    {
+    trackballCameraOver() {
         this.cameraController.over();
-        this.cameraController=null;
+        this.cameraController = null;
     }
     drawSimpleCube() {
         var program = createProgram(this.gl, document.getElementById("vertex-shader").innerHTML, document.getElementById("fragment-shader").innerHTML);
@@ -439,7 +457,7 @@ class WHYScene {
         this.gl.enableVertexAttribArray(program.pos);
         this.gl.useProgram(program);
         var modelMatrix = new Matrix4();
-        modelMatrix.translate(3,0,0);
+        modelMatrix.translate(3, 0, 0);
         this.gl.uniformMatrix4fv(program.m, false, modelMatrix.elements);
         this.gl.uniformMatrix4fv(program.v, false, this.camera.viewMatrix.elements);
         this.gl.uniformMatrix4fv(program.p, false, this.projectionMatrix.elements);
