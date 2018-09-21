@@ -609,8 +609,8 @@ class WHYScene {
         this.gl.drawElements(this.gl.TRIANGLES, indices.length, this.gl.UNSIGNED_BYTE, 0);
 
     }
-    drawS(vertices, indices, texcoords) {
-        console.log("v", vertices, indices);
+    drawS(vertices,texcoords) {
+       // console.log("v", vertices, texcoords);
         //console.log("i",indices)
         
         var program = createProgram(this.gl, document.getElementById("vertex-shader").innerHTML, document.getElementById("fragment-shader").innerHTML);
@@ -620,7 +620,7 @@ class WHYScene {
         }
         
         var vertices = new Float32Array(vertices);
-        var indices = new Uint8Array(indices);
+        //var indices = new Uint8Array(indices);
         var texcoords = new Float32Array(texcoords);
 
         //console.log("here", vertices, indices)
@@ -679,9 +679,9 @@ class WHYScene {
             
             self.gl.uniform1i(program.tex,0);
             
-            self.gl.clearColor(0.9,0.9,0.9,1.0);
+            //self.gl.clearColor(0.9,0.9,0.9,1.0);
      
-            self.gl.clear(self.gl.COLOR_BUFFER_BIT);
+            //self.gl.clear(self.gl.COLOR_BUFFER_BIT);
             
             self.gl.drawArrays(self.gl.TRIANGLES,0,19554);
 
