@@ -10,7 +10,7 @@ class IrradianceMaker {
 
         this.sourceTexture.minFilter = (monotonicEncoding) ? THREE.LinearFilter : THREE.NearestFilter;
         this.sourceTexture.magFilter = (monotonicEncoding) ? THREE.LinearFilter : THREE.NearestFilter;
-        this.sourceTexture.generateMipmaps = this.sourceTexture.generateMipmaps && monotonicEncoding;
+        this.sourceTexture.generateMipmaps = false;
         //
         this.scene = new THREE.Scene();
         var fov = 90, aspect = 1;
@@ -22,12 +22,12 @@ class IrradianceMaker {
         //
         var cameraPX = new THREE.PerspectiveCamera(fov, aspect, near, far);
         cameraPX.up.set(0, - 1, 0);
-        cameraPX.lookAt(new THREE.Vector3(1, 0, 0));
+        cameraPX.lookAt(new THREE.Vector3(-1, 0, 0));
         this.scene.add(cameraPX);
         this.cameras.push(cameraPX)
         var cameraNX = new THREE.PerspectiveCamera(fov, aspect, near, far);
         cameraNX.up.set(0, - 1, 0);
-        cameraNX.lookAt(new THREE.Vector3(- 1, 0, 0));
+        cameraNX.lookAt(new THREE.Vector3( 1, 0, 0));
         this.scene.add(cameraNX);
         this.cameras.push(cameraNX)
 
@@ -64,6 +64,12 @@ class IrradianceMaker {
             anisotropy: this.sourceTexture.anisotropy,
             encoding: this.sourceTexture.encoding
         };
+        if ( params.encoding === THREE.RGBM16Encoding ) {
+
+			params.magFilter = THREE.LinearFilter;
+			params.minFilter = THREE.LinearFilter;
+
+		}
         //var options = options || { format: THREE.RGBFormat, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter };
         var renderTarget = new THREE.WebGLRenderTargetCube(cubeResolution, cubeResolution, params);
         renderTarget.texture.name = "Cube";
@@ -79,7 +85,6 @@ class IrradianceMaker {
         that.shader.uniforms[ 'envMap' ].value = that.sourceTexture;
 		that.shader.envMap = that.sourceTexture;
 		that.shader.needsUpdate = true;
-        that.shader.needsUpdate = true;
 
         renderer.toneMapping = THREE.LinearToneMapping;
         renderer.toneMappingExposure = 1.0;
@@ -104,7 +109,6 @@ class IrradianceMaker {
     }
     renderToCubeMapTargetFace(renderer, renderTarget, faceIndex) {
         var that = this;
-        console.log( renderTarget);
         renderer.setRenderTarget(renderTarget, faceIndex);
         renderer.clear();
         renderer.render(that.scene, that.cameras[faceIndex]);
@@ -142,9 +146,9 @@ class IrradianceMaker {
                     U=cross(N,R);\
                     const float sampleDelta=0.025;\
                     float nrSamples=0.;\
-                    for(float phi=0.0;phi<6.28;phi+=sampleDelta)\
+                    for(float phi=0.0;phi<2.*PI;phi+=sampleDelta)\
                     {\
-                      for(float theta=0.0;theta<1.57;theta+=sampleDelta)\
+                      for(float theta=0.0;theta<0.5*PI;theta+=sampleDelta)\
                       {\
                         vec3 tangentSample=vec3(sin(theta)*cos(phi),sin(theta)*sin(phi),cos(theta));\
                         vec3 sampleVec=tangentSample.x*R+tangentSample.y*U+tangentSample.z*N;\
@@ -153,7 +157,7 @@ class IrradianceMaker {
                       }\
                     }\
                     irradiance=PI*irradiance*(1./nrSamples);\
-                    gl_FragColor=vec4(irradiance,1.0);\
+                    gl_FragColor=(vec4(irradiance,1.0));\
                 }",
             }
         )

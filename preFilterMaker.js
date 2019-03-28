@@ -28,45 +28,40 @@ class PrefilterMaker {
         this.scene.add(BoxMesh);
        
 
-        var cameraPZ = new THREE.PerspectiveCamera(fov, aspect, near, far);
-        cameraPZ.up.set(0, - 1, 0);
-        cameraPZ.lookAt(new THREE.Vector3(0, 0, 1));
-        this.scene.add(cameraPZ);
-        this.cameras.push(cameraPZ)
-        //
-        var cameraNZ = new THREE.PerspectiveCamera(fov, aspect, near, far);
-        cameraNZ.up.set(0, - 1, 0);
-        cameraNZ.lookAt(new THREE.Vector3(0, 0, - 1));
-        this.scene.add(cameraNZ);
-        this.cameras.push(cameraNZ)
-        
+        var cameraPX = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        cameraPX.up.set(0, - 1, 0);
+        cameraPX.lookAt(new THREE.Vector3(-1, 0, 0));
+        this.scene.add(cameraPX);
+        this.cameras.push(cameraPX)
+        var cameraNX = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        cameraNX.up.set(0, - 1, 0);
+        cameraNX.lookAt(new THREE.Vector3( 1, 0, 0));
+        this.scene.add(cameraNX);
+        this.cameras.push(cameraNX)
 
-        var cameraNY = new THREE.PerspectiveCamera(fov, aspect, near, far);
-        cameraNY.up.set(0, 0, - 1);
-        cameraNY.lookAt(new THREE.Vector3(0, - 1, 0));
-        this.scene.add(cameraNY);
-        this.cameras.push(cameraNY)
         var cameraPY = new THREE.PerspectiveCamera(fov, aspect, near, far);
         cameraPY.up.set(0, 0, 1);
         cameraPY.lookAt(new THREE.Vector3(0, 1, 0));
         this.scene.add(cameraPY);
         this.cameras.push(cameraPY)
 
+        var cameraNY = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        cameraNY.up.set(0, 0, - 1);
+        cameraNY.lookAt(new THREE.Vector3(0, - 1, 0));
+        this.scene.add(cameraNY);
+        this.cameras.push(cameraNY)
 
-        //
- //
- var cameraPX = new THREE.PerspectiveCamera(fov, aspect, near, far);
- cameraPX.up.set(0, - 1, 0);
- cameraPX.lookAt(new THREE.Vector3(1, 0, 0));
- this.scene.add(cameraPX);
- this.cameras.push(cameraPX)
- //
+        var cameraPZ = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        cameraPZ.up.set(0, - 1, 0);
+        cameraPZ.lookAt(new THREE.Vector3(0, 0, 1));
+        this.scene.add(cameraPZ);
+        this.cameras.push(cameraPZ)
 
- var cameraNX = new THREE.PerspectiveCamera(fov, aspect, near, far);
- cameraNX.up.set(0, - 1, 0);
- cameraNX.lookAt(new THREE.Vector3(- 1, 0, 0));
- this.scene.add(cameraNX);
- this.cameras.push(cameraNX)
+        var cameraNZ = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        cameraNZ.up.set(0, - 1, 0);
+        cameraNZ.lookAt(new THREE.Vector3(0, 0, - 1));
+        this.scene.add(cameraNZ);
+        this.cameras.push(cameraNZ)
  
         //
         var params = {
@@ -115,15 +110,15 @@ class PrefilterMaker {
         renderer.gammaInput = false;
         renderer.gammaOutput = false;
         //
-        for (let i = 0; i < 5; i++) { 
-            that.uniform['roughness'].value=that.roughness/4
-            that.renderToCubeMapTarget(renderer, that.cubes[i],5) 
+        for (let i = 0; i < 1; i++) { 
+            that.uniform['roughness'].value=that.roughness
+            that.renderToCubeMapTarget(renderer, that.cubes[i]) 
             console.log(that.cubes[i])
         }
-        for(let i=0;i<5;i++)
-        {
-            that.cubes[0].texture.mipmaps[i]=that.cubes[i].texture;
-        }
+        // for(let i=0;i<5;i++)
+        // {
+        //     that.cubes[0].texture.mipmaps[i]=that.cubes[i].texture;
+        // }
         //
         renderer.setRenderTarget(currentRenderTarget);
         renderer.toneMapping = toneMapping;
@@ -131,17 +126,17 @@ class PrefilterMaker {
         renderer.gammaInput = gammaInput;
         renderer.gammaOutput = gammaOutput;
     }
-    renderToCubeMapTarget(renderer, renderTarget,level) {// renderTarget, activeCubeFace, activeMipMapLevel
+    renderToCubeMapTarget(renderer, renderTarget) {// renderTarget, activeCubeFace, activeMipMapLevel
         var that = this;
         for (var i = 0; i < 6; i++) {
 
-            that.renderToCubeMapTargetFace(renderer, renderTarget, i,level);
+            that.renderToCubeMapTargetFace(renderer, renderTarget, i);
 
         }
     }
-    renderToCubeMapTargetFace(renderer, renderTarget, faceIndex,level) {
+    renderToCubeMapTargetFace(renderer, renderTarget, faceIndex) {
         var that = this;
-        renderer.setRenderTarget(renderTarget, faceIndex,level);
+        renderer.setRenderTarget(renderTarget, faceIndex);
         renderer.clear();
         renderer.render(that.scene, that.cameras[faceIndex]);
     }
