@@ -65,9 +65,9 @@ class PrefilterMaker {
  
         //
         var params = {
-            format: this.sourceTexture.format,
-            magFilter: this.sourceTexture.magFilter,
-            minFilter: this.sourceTexture.minFilter,
+             format: this.sourceTexture.format,
+            // magFilter: this.sourceTexture.magFilter,
+            // minFilter: this.sourceTexture.minFilter,
             type: this.sourceTexture.type,
             generateMipmaps: this.sourceTexture.generateMipmaps,
             anisotropy: this.sourceTexture.anisotropy,
@@ -163,6 +163,16 @@ class PrefilterMaker {
 				uniform float roughness;\
 				uniform samplerCube envMap;\
                 const float PI=3.1415926;\
+                vec3 ACESToneMapping(vec3 color, float adapted_lum)\
+                {\
+                    const float A = 2.51;\
+                    const float B = 0.03;\
+                    const float C = 2.43;\
+                    const float D = 0.59;\
+                    const float E = 0.14;\
+                    color *= adapted_lum;\
+                    return (color * (A * color + B)) / (color * (C * color + D) + E);\
+                }\
                 float VanDerCorpus(int n, int base)\
                 {\
                     float invBase = 1.0 / float(base);\
@@ -239,6 +249,7 @@ class PrefilterMaker {
                         }\
                     }\
                     prefilteredColor = prefilteredColor / totalWeight;\
+                    prefilteredColor=ACESToneMapping(prefilteredColor,1.0);\
                     gl_FragColor=(vec4(prefilteredColor,1.0));\
                 }",
             }
