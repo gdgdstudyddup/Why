@@ -480,7 +480,7 @@
             return ggx1 * ggx2;\
 		}\
 		vec3 ReinhardToneMappingx( vec3 color ) {\
-                    float toneMappingExposure=3.;\
+                    float toneMappingExposure=2.2;\
                     color *= toneMappingExposure;\
                     return clamp( color / ( vec3( 1.0 ) + color ),0.,1. );\
         }\
