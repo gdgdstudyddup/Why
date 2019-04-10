@@ -490,14 +490,14 @@
                 vec3 albedo=texture2D(tex, vUv).rgb;\
                 albedo=vec3(pow(albedo.r,2.2),pow(albedo.g,2.2),pow(albedo.b,2.2));\
                 float ao=1.;\
-				float metaness=texture2D(texM,vUv).r;\
+				float metallic=texture2D(texM,vUv).r;\
 				float roughness=texture2D(texR,vUv).r;\
 				vec3 N=getNormalFromMap();\
 				vec3 V=normalize(vView-vPos);\
 				vec3 R = reflect(-V, N);\
                 vec3 Lo=vec3(0.0);\
                 vec3 F0=vec3(0.04);\
-                F0=mix(F0,albedo,metaness);\
+                F0=mix(F0,albedo,metallic);\
 				for(int i=0;i<4;i++)\
 				{\
 					vec3 L=normalize(lpos[i]- vPos);\
@@ -517,7 +517,7 @@
 				}\
 				vec3 F=fresnelSchlickRoughness(max(dot(N,V),0.0),F0,roughness);\
 				vec3 KD=1.-F;\
-				KD*=1.-metaness;\
+				KD*=1.-metallic;\
 				vec2 cubeuv=getuv(N);\
                 vec3 Irradiance= texture2D(irradianceMap,cubeuv).rgb;\
 				vec3 diffuse=Irradiance*albedo;\
