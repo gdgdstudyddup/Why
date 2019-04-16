@@ -419,12 +419,11 @@
 			vec4 lerpMip(vec3 lookup,float mip)\
 			{\
 				vec2 rauv = getuv(lookup);\
-				rauv.y = rauv.y * 0.125;\
 				float mip1 = floor(mip);\
 				float mip2 = mip1 + 1.0;\
 				mip2 = clamp(mip2, 0.0, 5.0);\
-				vec2 mip1uv = vec2(rauv.x,rauv.y + mip1 * 0.125);\
-				vec2 mip2uv = vec2(rauv.x,rauv.y + mip2 * 0.125);\
+				vec2 mip1uv = vec2(rauv.x,rauv.y*0.125+0.875 - mip1 * 0.125);//(rauv.y+7.0-mip1)*0.125\
+				vec2 mip2uv = vec2(rauv.x,rauv.y*0.125+0.875 - mip2 * 0.125);\
 				return vec4(mip1uv.x,mip1uv.y,mip2uv.x,mip2uv.y);\
 			}\
 			vec3 getNormalFromMap()\
