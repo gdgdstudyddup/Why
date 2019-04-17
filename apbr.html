@@ -40,15 +40,14 @@
 	<script src="js/loaders/OBJLoader.js"></script>
 	<script src="js/loaders/RGBELoader.js"></script>
 	<script src="js/loaders/HDRCubeTextureLoader.js"></script>
+	<script src="js/loaders/EquirectangularToCubeGenerator.js"></script>
 	<script src="js/pmrem/PMREMGenerator.js"></script>
 	<script src="js/pmrem/PMREMCubeUVPacker.js"></script>
 
 	<script src="js/loaders/GLTFLoader.js"></script>
 	<script src="js/WebGL.js"></script>
 	<script src="js/libs/stats.min.js"></script>
-	<script src="js/apbr.js"></script>
 	<script src="js/IrradianceMaker.js"></script>
-	<script src="js/preFilterMaker.js"></script>
 	<script src="Irradiance.js"></script>
 	<script src="Prefilter.js"></script>
 	<script>
@@ -72,11 +71,17 @@
 		//
 
 		var textureLoader = new THREE.TextureLoader();
-		var mapA = textureLoader.load("./models/obj/cerberus/Cerberus_A.jpg");
-		var mapB = textureLoader.load("./models/obj/cerberus/Cerberus_M.jpg");
-		var mapB2 = textureLoader.load("./models/obj/cerberus/Cerberus_R.jpg");
-		var mapC = textureLoader.load("./textures/ibl_brdf_lut.png");
-		var mapD = textureLoader.load("./models/obj/cerberus/Cerberus_N.jpg");
+		var mapA = textureLoader.load("./book/textures/book_02_-_Default_BaseColor.png");
+		var mapB = textureLoader.load("./book/textures/book_02_-_Default_Metallic.png");
+		var mapB2 = textureLoader.load("./book/textures/book_02_-_Default_Roughness.png");
+		var mapC = textureLoader.load("./textures/LUT.png");
+		var mapD = textureLoader.load("./book/textures/book_02_-_Default_Normal.png");
+
+		// var mapA = textureLoader.load("./models/obj/cerberus/Cerberus_A.jpg");
+		// var mapB = textureLoader.load("./models/obj/cerberus/Cerberus_M.jpg");
+		// var mapB2 = textureLoader.load("./models/obj/cerberus/Cerberus_R.jpg");
+		// var mapC = textureLoader.load("./textures/LUT.png");
+		// var mapD = textureLoader.load("./models/obj/cerberus/Cerberus_N.jpg");
 
 		mapA.wrapS = THREE.RepeatWrapping;
 		mapB.wrapS = THREE.RepeatWrapping;
@@ -132,74 +137,112 @@
 
 		}
 		function testP() {
-			var url='textures/Circus_Backstage_3k.hdr'//'textures/miranda_uncropped.hdr' //'Circus_Backstage_3k.hdr'
-			var I = new Irradiance(url)
-			var P = new Prefilter(url)
+			var cubeMapTexture = new THREE.CubeTexture()
+			//var url='textures/Circus_Backstage_3k.hdr'
+			var url = 'textures/miranda_uncropped.hdr'//'stpeters_probe.hdr'//'textures/miranda_uncropped.hdr' //'Circus_Backstage_3k.hdr'
 			new THREE.RGBELoader().load(url, function (texture, textureData) {
-            texture.encoding = THREE.RGBEEncoding;
-            texture.minFilter = THREE.NearestFilter;
-			texture.magFilter = THREE.NearestFilter;
-			scene.background=texture
-			texture.flipY = true;
-			})
-			setTimeout(() => {
-				I.render(renderer)
-			}, 3000);
-			setTimeout(() => {
-				
-				P.render(renderer)
-			}, 5000);
-			l.push(new THREE.Vector3(-10, 10, 10))
-			l.push(new THREE.Vector3(10, 10, 10))
-			l.push(new THREE.Vector3(-10, -10, 10))
-			l.push(new THREE.Vector3(10, -10, 10))
-			for (let i = 0; i < 4; i++) {
-				l.push(new THREE.Vector3(5, (i) * 5, (i - 2) * 5))
-			}
-			var _uniforms = {
-				"begin": { value: { r: 0, g: 0, b: 0.3 } },
-				"end": { value: { r: 0, g: 0.01, b: 0.1 } },
-				"transparent": { value: 0.0 },
-				"tex": { value: mapA },
-				"texM": { value: mapB },
-				"texR": { value: mapB2 },
-				"brdfLUT": { value: mapC },
-				"normalMap": { value: mapD },
-				"prefilterMap": { value: P.renderTarget.texture },//prefilter.cubes[0].texture // pmremGenerator.cubeLods[0].texture
-				"irradianceMap": { value: I.renderTarget.texture },//irradiance.cubes[0].texture//
-				"lpos": { value: l }//四个光源位置
-			}
-			var mat = getPBRShader(_uniforms);
-			mat.needsUpdate = true;
-			var geometry = new THREE.BoxGeometry(2, 2,2);
-			var sphere = new THREE.Mesh(geometry, mat);
-			//scene.add(sphere)
-			new THREE.OBJLoader()
-					.setPath('models/obj/cerberus/')
-					.load('Cerberus.obj', function (group) {
+				texture.encoding = THREE.RGBEEncoding;
+				texture.minFilter = THREE.NearestFilter;
+				texture.magFilter = THREE.NearestFilter;
+				texture.flipY = true;
+				scene.background = texture
+				var cubemapGenerator = new THREE.EquirectangularToCubeGenerator(texture, { resolution: 512 });
+				cubeMapTexture = cubemapGenerator.update(renderer);
+				//
+				var I = new IrradianceMaker(cubeMapTexture, 1, 100, 128);// new Irradiance(url)
+				var P = new Prefilter(url);
+				setTimeout(() => {
+					I.update(renderer)
+				}, 2000);
+				setTimeout(() => {
 
-						var loader = new THREE.TextureLoader()
-							.setPath('models/obj/cerberus/');
+					P.render(renderer)
+				}, 3500);
+				console.log(I)
+				l.push(new THREE.Vector3(-1, 1, 0))
+				l.push(new THREE.Vector3(1, 1, 1))
+				l.push(new THREE.Vector3(-1, -1, 1))
+				l.push(new THREE.Vector3(1, -1, 1))
+				var _uniforms = {
+					"begin": { value: { r: 0, g: 0, b: 0.3 } },
+					"end": { value: { r: 0, g: 0.01, b: 0.1 } },
+					"transparent": { value: 0.0 },
+					"tex": { value: mapA },
+					"texM": { value: mapB },
+					"texR": { value: mapB2 },
+					"brdfLUT": { value: mapC },
+					"normalMap": { value: mapD },
+					"prefilterMap": { value: P.renderTarget.texture },//prefilter.cubes[0].texture // pmremGenerator.cubeLods[0].texture
+					"irradianceMap": { value: I.cubes[0].texture },//irradiance.cubes[0].texture//
+					"lpos": { value: l }//四个光源位置
+				}
+				var mat = getPBRShader(_uniforms);
+				mat.needsUpdate = true;
+				var geometry = new THREE.SphereGeometry(2, 20, 20);
+				var sphere = new THREE.Mesh(geometry, mat);
+				scene.add(sphere)
+				new THREE.OBJLoader()
+				.load('./book/book.obj', function (group) {
+					group.traverse(function (child) {
 
-						group.traverse(function (child) {
+						if (child instanceof THREE.Mesh) {
+							//mat.side=THREE.BackSide;
+							child.material = mat;
 
-							if (child instanceof THREE.Mesh) {
-								//mat.side=THREE.BackSide;
-								child.material = mat;
-
-							}
-
-						});
-						group.position.x = - 0.45;
-						group.rotation.y = - Math.PI / 2;
-						group.scale.set(2, 2, 2)
-						scene.add(group);
-						
-						//scene.background = texture
+						}
 
 					});
-			
-		
+					group.position.x = - 0.45;
+					group.rotation.y = - Math.PI / 2;
+					group.scale.set(2, 2, 2)
+					//scene.add(group);
+
+					//scene.background = texture
+
+				});
+					// .setPath('models/obj/cerberus/')
+					// .load('Cerberus.obj', function (group) {
+
+					// 	var loader = new THREE.TextureLoader()
+					// 		.setPath('models/obj/cerberus/');
+
+					// 	group.traverse(function (child) {
+
+					// 		if (child instanceof THREE.Mesh) {
+					// 			//mat.side=THREE.BackSide;
+					// 			child.material = mat;
+
+					// 		}
+
+					// 	});
+					// 	group.position.x = - 0.45;
+					// 	group.rotation.y = - Math.PI / 2;
+					// 	group.scale.set(2, 2, 2)
+					// 	scene.add(group);
+
+						//scene.background = texture
+
+					//});
+			})
+
+
+			//setTimeout(() => {
+
+			//new IrradianceMaker(hdrCubeMap, 1, 100, 128);
+
+
+			//}, 3000);
+			setTimeout(() => {
+
+
+			}, 5000);
+
+			// for (let i = 0; i < 4; i++) {
+			// 	l.push(new THREE.Vector3(5, (i) * 5, (i - 2) * 5))
+			// }
+
+
+
 		}
 		function objtest() {
 			var envMap = new THREE.CubeTextureLoader()
@@ -397,7 +440,7 @@
 			uniform sampler2D texM;\
 			uniform sampler2D texR;\
 			uniform sampler2D normalMap;\
-			uniform sampler2D irradianceMap;\
+			uniform samplerCube irradianceMap;\
 			uniform sampler2D prefilterMap;\
             uniform float transparent;\
             uniform vec3 lpos[4];\
@@ -422,7 +465,7 @@
 				float mip1 = floor(mip);\
 				float mip2 = mip1 + 1.0;\
 				mip2 = clamp(mip2, 0.0, 5.0);\
-				vec2 mip1uv = vec2(rauv.x,rauv.y*0.125+0.875 - mip1 * 0.125);//(rauv.y+7.0-mip1)*0.125\
+				vec2 mip1uv = vec2(rauv.x,rauv.y*0.125+0.875 - mip1 * 0.125);\
 				vec2 mip2uv = vec2(rauv.x,rauv.y*0.125+0.875 - mip2 * 0.125);\
 				return vec4(mip1uv.x,mip1uv.y,mip2uv.x,mip2uv.y);\
 			}\
@@ -489,15 +532,16 @@
                 vec3 albedo=texture2D(tex, vUv).rgb;\
                 albedo=vec3(pow(albedo.r,2.2),pow(albedo.g,2.2),pow(albedo.b,2.2));\
                 float ao=1.;\
-				float metallic=texture2D(texM,vUv).r;\
+				float metaness=texture2D(texM,vUv).r;\
 				float roughness=texture2D(texR,vUv).r;\
+				roughness=0.0;metaness=1.;\
 				vec3 N=getNormalFromMap();\
 				vec3 V=normalize(vView-vPos);\
 				vec3 R = reflect(-V, N);\
                 vec3 Lo=vec3(0.0);\
                 vec3 F0=vec3(0.04);\
-                F0=mix(F0,albedo,metallic);\
-				for(int i=0;i<4;i++)\
+                F0=mix(F0,albedo,metaness);\
+				for(int i=0;i<1;i++)\
 				{\
 					vec3 L=normalize(lpos[i]- vPos);\
 					vec3 H=normalize(V+L);\
@@ -516,9 +560,9 @@
 				}\
 				vec3 F=fresnelSchlickRoughness(max(dot(N,V),0.0),F0,roughness);\
 				vec3 KD=1.-F;\
-				KD*=1.-metallic;\
+				KD*=1.-metaness;\
 				vec2 cubeuv=getuv(N);\
-                vec3 Irradiance= texture2D(irradianceMap,cubeuv).rgb;\
+                vec3 Irradiance= textureCube(irradianceMap,N).rgb;\
 				vec3 diffuse=Irradiance*albedo;\
 				float numMips		= 5.0;\
 				float mip			= clamp(log2(roughness) + numMips,0.0,numMips);\
