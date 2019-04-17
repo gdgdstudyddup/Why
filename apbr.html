@@ -534,7 +534,6 @@
                 float ao=1.;\
 				float metaness=texture2D(texM,vUv).r;\
 				float roughness=texture2D(texR,vUv).r;\
-				roughness=0.0;metaness=1.;\
 				vec3 N=getNormalFromMap();\
 				vec3 V=normalize(vView-vPos);\
 				vec3 R = reflect(-V, N);\
